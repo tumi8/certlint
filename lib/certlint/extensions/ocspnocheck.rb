@@ -24,10 +24,10 @@ class ASN1Ext
     def self.lint(content, cert, critical = false)
       messages = []
       if content != "\x05\x00"
-        messages << 'E: OCSP NoCheck extension must be null'
+        messages <<  ',E: OCSP NoCheck extension must be null'
       end
       if critical != false
-        messages << "W: Extension should not be critical for #{self}"
+        messages <<  ",W: Extension should not be critical for #{self}"
       end
       messages
     end

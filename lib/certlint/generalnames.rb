@@ -60,12 +60,12 @@ module CertLint
         checker = OTHERNAMES[oid]
         case checker
         when nil
-          messages << "I: No checks for OtherName type #{oid}"
+          messages <<  ",I: No checks for OtherName type #{oid}"
         else
-          messages << "I: Missing check for OtherName #{checker}"
+          messages <<  ",I: Missing check for OtherName #{checker}"
         end
       else
-        messages << "I: No checks for unknown OtherName type #{oid}"
+        messages <<  ",I: No checks for unknown OtherName type #{oid}"
       end
       messages
     end
@@ -73,15 +73,15 @@ module CertLint
     def self.rfc822name(orig_addr, is_constraint = false)
       messages = []
       if orig_addr.nil? || orig_addr.empty?
-        messages << 'E: RFC822Name has empty value'
+        messages <<  ',E: RFC822Name has empty value'
         return messages # Fatal to this entry
       end
       if orig_addr.include? "\0"
-        messages << 'E: RFC822Name includes null'
+        messages <<  ',E: RFC822Name includes null'
       end
       addr = orig_addr.strip.chomp('.')
       if orig_addr != addr
-        messages << 'E: Invalid padding in RFC822Name'
+        messages <<  ',E: Invalid padding in RFC822Name'
       end
       if addr.include? '@'
         p = EMAIL_SPLITTER.match(addr)
@@ -89,7 +89,7 @@ module CertLint
         domain_part = p[2]
       else
         if !is_constraint
-          messages << 'E: RFC822Name without @'
+          messages <<  ',E: RFC822Name without @'
         end
         local_part = nil
         domain_part = addr
@@ -102,24 +102,24 @@ module CertLint
       # but not Internet mail addresses on the host "example.com"
       if domain_part.start_with?('.')
         if !is_constraint
-          messages << 'E: RFC822Name domain must not start with .'
+          messages <<  ',E: RFC822Name domain must not start with .'
         end
         domain_part = domain_part[1..-1]
       end
 
       if domain_part.empty?
-        messages << 'E: RFC822Name without domain'
+        messages <<  ',E: RFC822Name without domain'
       elsif EMAIL_DOMAIN !~ domain_part
-        messages << 'E: RFC822Name with invalid domain'
+        messages <<  ',E: RFC822Name with invalid domain'
       end
 
       # Check for IDNs; https://tools.ietf.org/html/rfc5891#section-5.4
       domain_part.split('.').each do |label|
         next unless label.start_with? 'xn--'
         begin
-          ulabel = SimpleIDN.to_unicode(label.encode("UTF-8"))
+          ulabel = SimpleIDN.to_unicode(label)
         rescue SimpleIDN::ConversionError
-          messages << 'W: Bad IDN A-label in Email Address'
+          messages <<  ',W: Bad IDN A-label in Email Address'
           next
         end
         if ulabel.respond_to? :unicode_normalize
@@ -128,7 +128,7 @@ module CertLint
           ulabel_nfc = ulabel.to_nfc
         end
         if ulabel != ulabel_nfc
-          messages << 'E: Internationalized domain names must be in unicode normalization form C'
+          messages <<  ',E: Internationalized domain names must be in unicode normalization form C'
         end
       end
 
@@ -140,11 +140,11 @@ module CertLint
 
       if local_part.empty?
         # Empty can happen if the addr is "@example.com"
-        messages << 'E: RFC822Name without local part'
+        messages <<  ',E: RFC822Name without local part'
       elsif local_part.include? '"'
-        messages << 'W: RFC822Name with quoted local part'
+        messages <<  ',W: RFC822Name with quoted local part'
       elsif EMAIL_LOCAL_PART !~ local_part
-        messages << 'E: RFC822Name with invalid local part'
+        messages <<  ',E: RFC822Name with invalid local part'
       end
 
       messages
@@ -153,46 +153,46 @@ module CertLint
     def self.dnsname(orig_fqdn, is_constraint = false)
       messages = []
       if orig_fqdn.nil? || orig_fqdn.empty?
-        messages << 'E: DNSName is empty'
+        messages <<  ',E: DNSName is empty'
         return messages # Fatal to this entry
       end
       if !orig_fqdn.is_a? String
-        messages << 'F: DNSName is not a string'
+        messages <<  ',F: DNSName is not a string'
         return messages # Fatal to this entry
       end
       if orig_fqdn.include? "\0"
-        messages << 'E: DNSName includes null'
+        messages <<  ',E: DNSName includes null'
       end
       fqdn = orig_fqdn.strip.chomp('.')
       if orig_fqdn != fqdn
-        messages << 'E: DNSName is not in preferred syntax'
+        messages <<  ',E: DNSName is not in preferred syntax'
       end
       # Name Constraints, like other dNSNames must not start with '.'
       if fqdn.start_with?('.')
-        messages << 'E: DNSName must not start with .'
+        messages <<  ',E: DNSName must not start with .'
         fqdn = fqdn[1..-1]
       end
       unless FQDN.match(fqdn)
-        messages << 'E: DNSName is not FQDN'
+        messages <<  ',E: DNSName is not FQDN'
       end
       if fqdn.length > 253
-        messages << 'E: FQDN in DNSName is too long'
+        messages <<  ',E: FQDN in DNSName is too long'
       end
       if is_constraint
         if fqdn.include?('*')
-          messages << 'E: Wildcard in FQDN'
+          messages <<  ',E: Wildcard in FQDN'
         end
       end
       if fqdn.include?('_')
-        messages << 'W: Underscore should not appear in DNS names'
+        messages <<  ',W: Underscore should not appear in DNS names'
       end
       # Check for IDNs; https://tools.ietf.org/html/rfc5891#section-5.4
       fqdn.split('.').each do |label|
         next unless label.start_with? 'xn--'
         begin
-          ulabel = SimpleIDN.to_unicode(label.encode("UTF-8"))
+          ulabel = SimpleIDN.to_unicode(label)
         rescue SimpleIDN::ConversionError
-          messages << 'W: Bad IDN A-label in DNS Name'
+          messages <<  ',W: Bad IDN A-label in DNS Name'
           next
         end
         if ulabel.respond_to? :unicode_normalize
@@ -201,7 +201,7 @@ module CertLint
           ulabel_nfc = ulabel.to_nfc
         end
         if ulabel != ulabel_nfc
-          messages << 'E: Internationalized domain names must be in unicode normalization form C'
+          messages <<  ',E: Internationalized domain names must be in unicode normalization form C'
         end
       end
       messages
@@ -215,66 +215,66 @@ module CertLint
         messages += othername(genname.value, !is_san)
       when 1 # RFC822Name
         if !genname.value.is_a? String
-          messages << 'F: RFC822Name is not a String'
+          messages <<  ',F: RFC822Name is not a String'
           return messages # Fatal
         end
         messages += rfc822name(genname.value, !is_san)
       when 2 # DNSName
         if !genname.value.is_a? String
-          messages << 'F: DNS Name is not a String'
+          messages <<  ',F: DNS Name is not a String'
           return messages # Fatal
         end
         messages += dnsname(genname.value, !is_san)
       when 3 # X400Address
         orig = genname.value
         if orig.nil? || orig.empty?
-          messages << "E: X400Address is empty"
+          messages <<  ",E: X400Address is empty"
           return messages # Fatal to this entry
         end
-        messages << "I: No checks for X400Address"
+        messages <<  ",I: No checks for X400Address"
       when 4 # DirectoryName
         orig = genname.value
         if orig.nil? || orig.empty?
-          messages << "E: DirectoryName is empty"
+          messages <<  ",E: DirectoryName is empty"
           return messages # Fatal to this entry
         end
-        messages << "I: No checks for DirectoryName"
+        messages <<  ",I: No checks for DirectoryName"
       when 5 # EDIPartyName
         orig = genname.value
         if orig.nil? || orig.empty?
-          messages << "E: EDIPartyName is empty"
+          messages <<  ",E: EDIPartyName is empty"
           return messages # Fatal to this entry
         end
-        messages << "I: No checks for EDIPartyName"
+        messages <<  ",I: No checks for EDIPartyName"
       when 6 # URI
         orig = genname.value
         if orig.nil? || orig.empty?
-          messages << "E: URI is empty"
+          messages <<  ",E: URI is empty"
           return messages # Fatal to this entry
         end
-        messages << "I: No checks for URI"
+        messages <<  ",I: No checks for URI"
         # No checks
       when 7 # IPAddress
         len = genname.value.length
         if is_san
           unless len == 4 || len == 16
-            messages << 'E: Invalid IP address in SAN'
+            messages <<  ',E: Invalid IP address in SAN'
           end
         else # constraint
           unless len == 8 || len == 32
-            messages << 'E: Invalid IP address in constraint'
+            messages <<  ',E: Invalid IP address in constraint'
           end
         end
       when 8 # RegisteredId
         orig = genname.value
         if orig.nil? || orig.empty?
-          messages << 'E: RegisteredId is empty'
+          messages <<  ',E: RegisteredId is empty'
           return messages # Fatal to this entry
         end
-        messages << "I: No checks for RegisteredId"
+        messages <<  ",I: No checks for RegisteredId"
         # No checks
       else
-        messages << 'E: Unknown type of name in subjectAltName'
+        messages <<  ',E: Unknown type of name in subjectAltName'
       end
       messages
     end

@@ -21,7 +21,7 @@ class ASN1Ext
     @critical_req = :optional
     @critical_should = true
 
-    def self.lint(content, cert, critical = false)
+    def self.lint( content, cert, critical = false)
       messages = []
       messages += super(content, cert, critical)
 
@@ -36,7 +36,7 @@ class ASN1Ext
       end
 
       if pk.nil?
-        messages << 'E: Unable to parse public key'
+        messages <<  ',E: Unable to parse public key'
       elsif pk.is_a? OpenSSL::PKey::RSA
         allowed = [
           'Digital Signature',
@@ -47,11 +47,11 @@ class ASN1Ext
           'CRL Sign'
         ]
         if v.any? { |u| !allowed.include? u }
-          messages << "E: Unallowed key usage for RSA public key (#{(v-allowed).join(', ')})"
+          messages <<  ",E: Unallowed key usage for RSA public key (#{(v-allowed).join(', ')})"
         end
         if (v.include? 'Certificate Sign') || (v.include? 'CRL Sign')
           if (v.include? 'Key Encipherment') || (v.include? 'Data Encipherment')
-            messages << 'W: Encipherment usage should not be mixed with Certificate/CRL signing'
+            messages <<  ',W: Encipherment usage should not be mixed with Certificate/CRL signing'
           end
         end
       elsif pk.is_a? OpenSSL::PKey::DSA
@@ -62,7 +62,7 @@ class ASN1Ext
           'CRL Sign'
         ]
         if v.any? { |u| !allowed.include? u }
-          messages << "E: Unallowed key usage for DSA public key (#{(v-allowed).join(', ')})"
+          messages <<  ",E: Unallowed key usage for DSA public key (#{(v-allowed).join(', ')})"
         end
       elsif pk.is_a? OpenSSL::PKey::EC
         # A little complex as this can be either for ECDSA or ECDH
@@ -76,21 +76,21 @@ class ASN1Ext
           'Decipher Only'
         ]
         if v.any? { |u| !allowed.include? u }
-          messages << "E: Unallowed key usage for EC public key (#{(v-allowed).join(', ')})"
+          messages <<  ",E: Unallowed key usage for EC public key (#{(v-allowed).join(', ')})"
         end
 
         if (v.include? 'Encipher Only') || (v.include? 'Decipher Only')
           unless v.include? 'Key Agreement'
-            messages << 'E: Key agreement required with encipher only or decipher only'
+            messages <<  ',E: Key agreement required with encipher only or decipher only'
           end
         end
         if (v.include? 'Encipher Only') && (v.include? 'Decipher Only')
-          messages << 'E: Encipher Only and Decipher Only must not both be set'
+          messages <<  ',E: Encipher Only and Decipher Only must not both be set'
         end
 
         if (v.include? 'Certificate Sign') || (v.include? 'CRL Sign')
           if (v.include? 'Encipher Only') || (v.include? 'Decipher Only') || (v.include? 'Key Agreement')
-            messages << 'W: Key agreement should not be included with Certificate/CRL Signing'
+            messages <<  ',W: Key agreement should not be included with Certificate/CRL Signing'
           end
         end
       elsif pk.is_a? OpenSSL::PKey::DH
@@ -100,16 +100,16 @@ class ASN1Ext
           'Decipher Only'
         ]
         if v.any? { |u| !allowed.include? u }
-          messages << "E: Unallowed key usage for DH public key (#{(v-allowed).join(', ')})"
+          messages <<  ",E: Unallowed key usage for DH public key (#{(v-allowed).join(', ')})"
         end
         unless v.include? 'Key Agreement'
-          messages << 'E: Key Agreement must be included for DH public keys'
+          messages <<  ',E: Key Agreement must be included for DH public keys'
         end
         if (v.include? 'Encipher Only') && (v.include? 'Decipher Only')
-          messages << 'E: Encipher Only and Decipher Only must not both be set'
+          messages <<  ',E: Encipher Only and Decipher Only must not both be set'
         end
       else
-        messages << "I: Key usages not checked for #{cert.public_key.class}"
+        messages <<  ",I: Key usages not checked for #{cert.public_key.class}"
       end
       messages
     end

@@ -23,16 +23,16 @@ class ASN1Ext
     if !@pdu.nil?
       messages += CertLint.check_pdu(@pdu, content)
     else
-      messages << 'E: No PDU defined'
+      messages <<  ',E: No PDU defined'
     end
     if @critical_req != :optional
       if @critical_req != critical
-        messages << "E: Extension criticality not allowed for #{self.to_s.split(':').last}"
+        messages <<  ",E: Extension criticality not allowed for #{self.to_s.split(':').last}"
       end
     end
     unless @critical_should.nil?
       if @critical_should != critical
-        messages << "W: Extension should#{@critical_should ? '' : ' not'} be critical for #{self.to_s.split(':').last}"
+        messages <<  ",W: Extension should#{@critical_should ? '' : ' not'} be critical for #{self.to_s.split(':').last}"
       end
     end
 

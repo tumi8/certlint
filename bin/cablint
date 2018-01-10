@@ -13,25 +13,42 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 require 'certlint'
+require 'pg'
 
-ARGV.each do |file|
-  fn = File.basename(file)
-  raw = File.read(file)
+# Read start parameter (id column in postgres) and step parameter (how many postgres rows per exectution)
+start = Integer(ARGV[0])
+step = Integer(ARGV[1])
+next_step = start + step
 
-  if raw.include? '-BEGIN CERTIFICATE-'
-    m, der = CertLint::PEMLint.lint(raw, 'CERTIFICATE')
-  else
+# Postgres connection and stream rows
+conn = PG.connect(:host => 'localhost', :port => 7777, :dbname => 'ct2', :user => 'postgres', :password => 'postgres')
+conn.send_query("SELECT id, cert_hash, cert FROM cablint_all where id > #{start} and id <= #{next_step}")
+conn.set_single_row_mode
+records = conn.get_result
+
+# Run cablint on each row
+records.stream_each do |row|
+    raw = row['cert']
+    cert_hash = row['cert_hash']
+    id = row['id']
     m  = []
-    der = raw
-  end
-
-  m += CertLint::CABLint.lint(der)
-  m.each do |msg|
+    der = PG::Connection.unescape_bytea(raw)
     begin
-      puts "#{msg}\t#{fn}"
-    rescue Encoding::UndefinedConversionError
-      print msg
-      puts "\t#{fn}"
+        m += CertLint::CABLint.lint(der)
+    rescue => ex
     end
-  end
+
+# Print cert_hash and errors
+m.each do |msg|
+    begin
+        puts cert_hash + "#{msg}"
+    rescue Encoding::UndefinedConversionError
+        print msg
+        puts "\t#{fn}"
+    end
+end 
+
+    
+
 end
+records.clear()

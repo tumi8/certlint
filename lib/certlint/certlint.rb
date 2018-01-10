@@ -64,52 +64,52 @@ module CertLint
 
   def self.check_pdu(pdu, content)
     messages = []
-    content.force_encoding('BINARY')
+    #content.force_encoding('BINARY')
 
     begin
       validator = CertLint::ASN1Validator.new(content, pdu)
     rescue => ex
-      messages << "F: ASN.1 Error in #{pdu}: #{ex.message}"
+      messages <<  ",F: ASN.1 Error in #{pdu}: #{ex.message}"
       return messages
     end
 
     begin
       validator.check_constraints
     rescue => ex
-      messages << "E: Constraint failure in #{pdu}: #{ex.message}"
+      messages <<  ",E: Constraint failure in #{pdu}: #{ex.message}"
     end
 
     begin
       der = validator.to_der
       unless der == content
-        messages << "W: NotDER in #{pdu}"
+        messages <<  ",W: NotDER in #{pdu}"
       end
     rescue NoMemoryError
-      messages << "E: BadDER in #{pdu}"
+      messages <<  ",E: BadDER in #{pdu}"
     end
 
     # A few things pass asn1c but fail to decode in OpenSSL/Ruby
     begin
       OpenSSL::ASN1.decode(content)
     rescue ArgumentError => e
-      messages << "F: Encoding error: #{e.message} in #{pdu}"
+      messages <<  ",F: Encoding error: #{e.message} in #{pdu}"
       return messages # ASN.1 error is fatal
     rescue TypeError => e
       if e.message == "bad GENERALIZEDTIME format"
-        messages << "F: Bad GeneralizedTime in #{pdu}"
+        messages <<  ",F: Bad GeneralizedTime in #{pdu}"
         return messages # ASN.1 error is fatal
       elsif e.message.start_with?("bad UTCTIME format")
-        messages << "F: Bad UTCTime in #{pdu}"
+        messages <<  ",F: Bad UTCTime in #{pdu}"
         return messages # ASN.1 error is fatal
       end
       raise e
     rescue OpenSSL::ASN1::ASN1Error => e
       if e.message.include?("mismatch")
-        messages << "F: Type mismatch during decode in #{pdu}"
+        messages <<  ",F: Type mismatch during decode in #{pdu}"
       elsif e.message == "invalid object encoding"
-        messages << "F: Bad encoding in #{pdu}"
+        messages <<  ",F: Bad encoding in #{pdu}"
       else
-        messages << "F: Decode error in #{pdu}: #{e.message}"
+        messages <<  ",F: Decode error in #{pdu}: #{e.message}"
       end
       return messages # ASN.1 error is fatal
     end
@@ -119,43 +119,43 @@ module CertLint
     # - Null bytes
     # - Escape sequences in restricted character strings
     begin
-      OpenSSL::ASN1.traverse(content) do |_depth, offset, header_len, length, _constructed, tag_class, tag|
+      OpenSSL::ASN1.traverse(der) do |_depth, offset, header_len, length, _constructed, tag_class, tag|
         start_c = offset + header_len
         end_c = start_c + length
-        value = content[start_c..end_c - 1]
+        value = der[start_c..end_c - 1]
         if (tag_class == :UNIVERSAL) && (tag == 12) # UTF8String
           unless value.force_encoding('UTF-8').valid_encoding?
-            messages << "F: Incorrectly encoded UTF8String in #{pdu}"# at offset #{offset}"
+            messages <<  ",F: Incorrectly encoded UTF8String in #{pdu}"# at offset #{offset}"
           end
           if value.bytes.include? 0
-            messages << "E: Null byte found in UTF8String in #{pdu}"# at offset #{offset}"
+            messages <<  ",E: Null byte found in UTF8String in #{pdu}"# at offset #{offset}"
           end
         elsif (tag_class == :UNIVERSAL) && ([22, 26].include? tag)
           # IA5, Visible
           if value.bytes.any? { |b| b < 0x20 || b > 0x7E }
-            messages << "E: Control character found in String in #{pdu}"# at offset #{offset}"
+            messages <<  ",E: Control character found in String in #{pdu}"# at offset #{offset}"
           end
         elsif (tag_class == :UNIVERSAL) && ([20, 21, 25, 27].include? tag)
           # Teletex, Videotex, Graphic, General String
           if value.bytes.include? 0
-            messages << "E: Null byte found in String in #{pdu}"# at offset #{offset}"
+            messages <<  ",E: Null byte found in String in #{pdu}"# at offset #{offset}"
           end
           escape = false
           if value.bytes.include? 27
             escape = true
-            messages << "B: Unhandled escape found in String in #{pdu}"# at offset #{offset}"
+            messages <<  ",B: Unhandled escape found in String in #{pdu}"# at offset #{offset}"
           end
           if tag == 20
             unless escape || value.force_encoding('BINARY').bytes.all? { |b| (b >= 0x20 && b <= 0x5B) || b == 0x5D || b == 0x5F || (b >= 0x61 && b <= 0x7A) || b == 0x7C }
-              messages << "E: Incorrectly encoded TeletexString in #{pdu}"# at offset #{offset}"
+              messages <<  ",E: Incorrectly encoded TeletexString in #{pdu}"# at offset #{offset}"
             end
           else
-            messages << "B: No checks for String type #{tag} in #{pdu}"# at offset #{offset}"
+            messages <<  ",B: No checks for String type #{tag} in #{pdu}"# at offset #{offset}"
           end
         end
       end
     rescue TypeError => e
-      messages << "F: Type error during traverse in #{pdu}: #{e.message}"
+      messages <<  ",F: Type error during traverse in #{pdu}: #{e.message}"
       return messages # ASN.1 error is fatal
     end
 
@@ -175,9 +175,9 @@ module CertLint
       # parameters field MUST have ASN.1 type NULL
       # public key MUST be encoded using the ASN.1 type RSAPublicKey
       if params.nil?
-        messages << 'E: RSA keys must have a parameter specified'
+        messages <<  ',E: RSA keys must have a parameter specified'
       elsif !params.instance_of? OpenSSL::ASN1::Null
-        messages << 'E: RSA keys must have a null parameter'
+        messages <<  ',E: RSA keys must have a null parameter'
       end
       messages += check_pdu(:RSAPublicKey, key_der)
       if messages.any? { |m| m.start_with? 'F:' }
@@ -190,17 +190,17 @@ module CertLint
       if rsa_asn.value[0].value > 0
         positive += 1
       else
-        messages << 'E: RSA public key modulus must be positive'
+        messages <<  ',E: RSA public key modulus must be positive'
       end
       if rsa_asn.value[1].value > 0
         positive += 1
       else
-        messages << 'E: RSA public key exponent must be positive'
+        messages <<  ',E: RSA public key exponent must be positive'
       end
       # Only run this check if both numbers were positive
       if positive == 2
         unless (rsa_asn.value[1].value >= 3) && (rsa_asn.value[1].value < rsa_asn.value[0].value)
-          messages << 'E: RSA public key exponent must be between 3 and n - 1'
+          messages <<  ',E: RSA public key exponent must be between 3 and n - 1'
         end
       end
     when '1.2.840.10040.4.1' # DSA
@@ -214,7 +214,7 @@ module CertLint
     when '1.2.840.10046.2.1' # DH
       # parameters field have the ASN.1 type DomainParameters
       if params.nil?
-        messages << 'E: DH keys must have parameters'
+        messages <<  ',E: DH keys must have parameters'
       else
         messages += check_pdu(:DomainParameters, params.to_der)
       end
@@ -222,7 +222,7 @@ module CertLint
     when '1.2.840.10045.2.1' # EC
       # parameters field is EcpkParameters
       if params.nil?
-        messages << 'E: EC keys must have parameters'
+        messages <<  ',E: EC keys must have parameters'
       else
         messages += check_pdu(:EcpkParameters, params.to_der)
       end
@@ -237,16 +237,16 @@ module CertLint
       begin
         okey = OpenSSL::PKey::EC.new(spki_der)
       rescue ArgumentError => e
-        messages << "E: EC public key #{e.message}"
+        messages <<  ",E: EC public key #{e.message}"
       end
       if !okey.nil? && okey.public_key.infinity?
-        messages << 'E: EC Public key is infinity'
+        messages <<  ',E: EC Public key is infinity'
       end
       if !okey.nil? && !okey.public_key.on_curve?
-        messages << 'E: EC Public key is not on curve'
+        messages <<  ',E: EC Public key is not on curve'
       end
     else
-      messages << 'W: Unknown public key type'
+      messages <<  ',W: Unknown public key type'
     end
     messages
   end
@@ -270,27 +270,27 @@ module CertLint
       if (tag_class == :UNIVERSAL) && (tag == 23) # UTCTimee
         # RFC 5280 4.1.2.5: times must be in Z (GMT)
         unless value =~ /Z\z/
-          messages << 'E: Time not in Zulu/GMT'
+          messages <<  ',E: Time not in Zulu/GMT'
         end
         if (value[0..1] >= '50') && (value[0..1] < '69')
           # Ruby uses (x < 69)?2000:1900, but
           # RFC 5280 says (x < 50)?2000:1900
-          messages << 'N: Ruby may incorrectly interpret UTCTimes between 1950 and 1969'
+          messages <<  ',N: Ruby may incorrectly interpret UTCTimes between 1950 and 1969'
         end
         # RFC 5280 4.1.2.5.1: UTCTime MUST include seconds, even when 00
         if value !~ /\A([0-9]{2})([01][0-9])([0-3][0-9])([012][0-9])([0-5][0-9]){2}Z\z/
-          messages << 'E: UTCTime without seconds'
+          messages <<  ',E: UTCTime without seconds'
         end
       elsif (tag_class == :UNIVERSAL) && (tag == 24) # Generalized Time
         # RFC 5280 4.1.2.5: times must be in Z (GMT)
         unless value =~ /Z\z/
-          messages << 'E: Time not in Zulu/GMT'
+          messages <<  ',E: Time not in Zulu/GMT'
         end
         if value[0..3] < '2050'
-          messages << 'E: Generalized Time before 2050'
+          messages <<  ',E: Generalized Time before 2050'
         end
         if value !~ /\A([0-9]{4})([01][0-9])([0-3][0-9])([012][0-9])([0-5][0-9]){2}Z\z/
-          messages << 'E: Generalized Time without seconds or with fractional seconds'
+          messages <<  ',E: Generalized Time without seconds or with fractional seconds'
         end
       end
     end
@@ -311,30 +311,30 @@ module CertLint
     # need to use find or other heuristics
     cert_sign_alg = asn.value[1].to_der
     if tbs_sign_alg != cert_sign_alg
-      messages << 'E: Certificate signature algorithm does not match TBS signature algorithm'
+      messages <<  ',E: Certificate signature algorithm does not match TBS signature algorithm'
     end
     sig_oid = asn.value[1].value[0].oid
     sig_type = SIG_STRUCTS[sig_oid]
     sig_params = asn.value[1].value[1]
     case sig_type
     when nil
-      messages << "W: Certificate signature algorithm type is unknown: #{sig_oid}"
+      messages <<  ",W: Certificate signature algorithm type is unknown: #{sig_oid}"
     when :pss
-      messages << 'I: No checks for PSS yet'
+      messages <<  ',I: No checks for PSS yet'
     when :rsa
       if sig_params.nil?
-        messages << 'E: RSA signatures must have a parameter specified'
+        messages <<  ',E: RSA signatures must have a parameter specified'
       elsif !sig_params.instance_of? OpenSSL::ASN1::Null
-        messages << 'E: RSA signatures must have a null parameter'
+        messages <<  ',E: RSA signatures must have a null parameter'
       end
     when :dsa
       unless sig_params.nil?
-        messages << 'E: DSA signatures must not have a parameter specified'
+        messages <<  ',E: DSA signatures must not have a parameter specified'
       end
       messages += check_pdu(:'Dss-Sig-Value', asn.value[2].value)
     when :ecdsa
       unless sig_params.nil?
-        messages << 'E: ECDSA signatures must not have a parameter specified'
+        messages <<  ',E: ECDSA signatures must not have a parameter specified'
       end
       messages += check_pdu(:'ECDSA-Sig-Value', asn.value[2].value)
     else
@@ -347,24 +347,24 @@ module CertLint
     begin
       cert = OpenSSL::X509::Certificate.new(der)
     rescue OpenSSL::X509::CertificateError
-      messages << 'F: Unable to parse Certificate'
+      messages <<  ',F: Unable to parse Certificate'
       return messages
     end
 
     if cert.version > 2
-      messages << 'E: Invalid certificate version'
+      messages <<  ',E: Invalid certificate version'
     elsif cert.version < 2
-      messages << 'E: Old certificate version (not X.509v3)'
+      messages <<  ',E: Old certificate version (not X.509v3)'
     end
 
     if cert.serial.to_s =~ /^-/
-      messages << 'E: Negative serial number'
+      messages <<  ',E: Negative serial number'
     elsif cert.serial.zero?
-      messages << 'E: Serial number must be positive'
+      messages <<  ',E: Serial number must be positive'
     end
     # DER of a 20 byte octet is 22 bytes (one byte type, one byte length, 20 bytes of data)
     if OpenSSL::ASN1::Integer.new(cert.serial).to_der.bytesize > 22
-      messages << 'E: Serial numbers must be 20 octets or less'
+      messages <<  ',E: Serial numbers must be 20 octets or less'
     end
 
     ## Note: No checking of Issuer Name, as the most important
@@ -373,7 +373,7 @@ module CertLint
     # Lint that cert if you want to check this Issuer Name.
 
     if cert.not_after < cert.not_before
-      messages << 'E: Certificate has negative validity length'
+      messages <<  ',E: Certificate has negative validity length'
     end
 
     m = NameLint.lint(cert.subject)
@@ -383,10 +383,10 @@ module CertLint
 
     # CAs conforming to this profile MUST NOT generate certificates with unique identifiers. (4.1.2.8)
     if asn.value[0].value.any? { |el| el.tag_class == :CONTEXT_SPECIFIC && el.tag == 1 }
-      messages << 'E: issuerUniqueID is included'
+      messages <<  ',E: issuerUniqueID is included'
     end
     if asn.value[0].value.any? { |el| el.tag_class == :CONTEXT_SPECIFIC && el.tag == 2 }
-      messages << 'E: subjectUniqueID is included'
+      messages <<  ',E: subjectUniqueID is included'
     end
 
     ext_list = []
@@ -403,13 +403,13 @@ module CertLint
 
       if first
         if oid == '2.5.29.17' # SubjectAltName
-          messages << 'N: Some python versions will not see SAN extension if it is the first extension'
+          messages <<  ',N: Some python versions will not see SAN extension if it is the first extension'
         end
         first = false
       end
 
       if ext_list.include? oid
-        messages << "E: Duplicate extension #{oid}"
+        messages <<  ",E: Duplicate extension #{oid}"
       end
       ext_list << oid
       # if critical, e[1] is true and e[2] is octet string; otherwise e[1] is octet string
@@ -421,12 +421,12 @@ module CertLint
       if e.length == 3
         critical = e[1].value
         unless critical
-          messages << "E: #{oid} has critical:FALSE explicitly encoded"
+          messages <<  ",E: #{oid} has critical:FALSE explicitly encoded"
         end
       else
         critical = false
       end
-      messages += CertExtLint.lint(oid, extder.value, cert, critical)
+      messages += CertExtLint.lint( oid, extder.value, cert, critical)
 
       if oid == '2.5.29.19' # basicConstraints
         bc = ext.value
@@ -438,7 +438,7 @@ module CertLint
     # X.509 8.2.2.3 says if keyCertSign is set, then CA:TRUE must be present
     if !ku.nil? && ku.split(',').any? { |s| s.strip == 'Certificate Sign' }
       if bc.nil? || !(bc.include? 'CA:TRUE')
-        messages << 'E: keyCertSign without CA:TRUE'
+        messages <<  ',E: keyCertSign without CA:TRUE'
       end
     end
     # RFC 5280 4.2.1.3
@@ -447,7 +447,7 @@ module CertLint
     # other public key certificates or CRLs.
     if !bc.nil? && (bc.include? 'CA:TRUE')
       if ku.nil? || !ku.split(',').any? { |s| s.strip == 'Certificate Sign' }
-        messages << 'E: CA:TRUE without keyCertSign'
+        messages <<  ',E: CA:TRUE without keyCertSign'
       end
     end
     messages

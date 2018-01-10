@@ -41,11 +41,11 @@ class ASN1Ext
           messages += CertLint::GeneralNames.lint(genname, false)
         end
         unless at_least_one
-          messages << 'E: NameConstriants must contain at least one subtree'
+          messages <<  ',E: NameConstriants must contain at least one subtree'
         end
       end
       if subtree_count == 0
-        messages << 'E: NameConstraints must include either permitted or excluded Subtrees'
+        messages <<  ',E: NameConstraints must include either permitted or excluded Subtrees'
       end
       messages
     end

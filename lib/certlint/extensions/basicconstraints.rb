@@ -20,7 +20,7 @@ class ASN1Ext
     @pdu = :BasicConstraints
     @critical_req = :optional
 
-    def self.lint(content, cert, critical = false)
+    def self.lint( content, cert, critical = false)
       messages = []
       messages += super(content, cert, critical)
       if messages.any? { |m| m.start_with? 'F:' }
@@ -32,14 +32,14 @@ class ASN1Ext
         if a.value.first.value # True
           is_ca = true
           unless critical
-            messages << 'E: basicConstraints must be critical in CA certificates'
+            messages <<  ',E: basicConstraints must be critical in CA certificates'
           end
         else
-          messages << 'E: CA:FALSE must not be explicitly encoded in basicConstraints'
+          messages <<  ',E: CA:FALSE must not be explicitly encoded in basicConstraints'
         end
       end
       if !is_ca && a.value.last.is_a?(OpenSSL::ASN1::Integer)
-        messages << 'E: Must not include pathLenConstraint on certificates that are not CA:TRUE'
+        messages <<  ',E: Must not include pathLenConstraint on certificates that are not CA:TRUE'
       end
       messages
     end

@@ -118,7 +118,7 @@ module CertLint
       # DN is a SEQUENCE OF (SET OF (Attributes))
       dn.value.each do |rdn|
         if rdn.value.length > 1
-          messages << 'W: Multiple attributes in a single RDN in the subject Name'
+          messages <<  ',W: Multiple attributes in a single RDN in the subject Name'
         end
         rdn.value.each do |attr|
           attr_messages = []
@@ -131,7 +131,7 @@ module CertLint
           validator = nil
           pdu = RDN_ATTRIBUTES[type]
           if pdu.nil?
-            attr_messages << "W: Name has unknown attribute #{attrname}"
+            attr_messages <<  ",W: Name has unknown attribute #{attrname}"
             messages += attr_messages
             next
           end
@@ -141,7 +141,7 @@ module CertLint
           end
 
           if DEPRECATED_ATTRIBUTES.include? type
-            attr_messages << "W: Name has deprecated attribute #{attrname}"
+            attr_messages <<  ",W: Name has deprecated attribute #{attrname}"
           end
 
           attr_messages += CertLint.check_pdu(pdu, value.to_der)
@@ -174,41 +174,41 @@ module CertLint
           when 20 # Teletex (7-bit)
             value = value.value
             check_padding = true
-            attr_messages << "W: #{attrname} is using deprecated TeletexString"
+            attr_messages <<  ",W: #{attrname} is using deprecated TeletexString"
           when 21 # Videotex
             value = value.value
             check_padding = true
-            attr_messages << "W: #{attrname} is using deprecated VideoexString"
+            attr_messages <<  ",W: #{attrname} is using deprecated VideoexString"
           when 22 # IA5
             value = value.value
             check_padding = true
           when 25 # Graphic
             value = value.value
             check_padding = true
-            attr_messages << "W: #{attrname} is using deprecated GraphicString"
+            attr_messages <<  ",W: #{attrname} is using deprecated GraphicString"
           when 26 # Visible
             value = value.value
             check_padding = true
           when 27 # General
             value = value.value
             check_padding = true
-            attr_messages << "W: #{attrname} is using deprecated GeneralString"
+            attr_messages <<  ",W: #{attrname} is using deprecated GeneralString"
           when 28 # Universal
             check_padding = true
-            attr_messages << "W: Unicode #{attrname} is using deprecated UniversalString"
+            attr_messages <<  ",W: Unicode #{attrname} is using deprecated UniversalString"
             value = value.value.force_encoding('UTF-32BE').encode('UTF-8')
           when 30 # BMP
             check_padding = true
-            attr_messages << "W: Unicode #{attrname} is using deprecated BMPString"
+            attr_messages <<  ",W: Unicode #{attrname} is using deprecated BMPString"
             value = value.value.force_encoding('UTF-16BE').encode('UTF-8')
           end
 
           if check_padding
             if value =~ /\A\s+/
-              attr_messages << "W: Leading whitepsace in #{attrname}"
+              attr_messages <<  ",W: Leading whitepsace in #{attrname}"
             end
             if value =~ /\s+\z/
-              attr_messages << "W: Trailing whitespace in #{attrname}"
+              attr_messages <<  ",W: Trailing whitespace in #{attrname}"
             end
           end
 
@@ -216,21 +216,21 @@ module CertLint
           when Integer
             # Measured in characters not octets
             if value.length > validator
-              attr_messages << "E: #{attrname} is too long"
+              attr_messages <<  ",E: #{attrname} is too long"
             end
           when :Country
             unless COUNTRIES.include? value.upcase
-              attr_messages << "E: Invalid country in #{attrname}"
+              attr_messages <<  ",E: Invalid country in #{attrname}"
             end
           when :DNS
             unless value =~ DLABEL
-              attr_messages << "E: Invalid label in #{attrname}"
+              attr_messages <<  ",E: Invalid label in #{attrname}"
             end
             if value.start_with? 'xn--'
               begin
-                ulabel = SimpleIDN.to_unicode(value.encode("UTF-8"))
+                ulabel = SimpleIDN.to_unicode(value)
               rescue SimpleIDN::ConversionError
-                messages << 'W: Bad IDN A-label in DNS Name'
+                messages <<  ',W: Bad IDN A-label in DNS Name'
                 ulabel = value
               end
               if ulabel.respond_to? :unicode_normalize
@@ -239,20 +239,20 @@ module CertLint
                 ulabel_nfc = ulabel.to_nfc
               end
               if ulabel != ulabel_nfc
-                messages << 'E: Internationalized domain names must be in unicode normalization form C'
+                messages <<  ',E: Internationalized domain names must be in unicode normalization form C'
               end
             end
           when :PKCS9
             if value.length > 255
-              attr_messages << "E: #{attrname} is too long"
+              attr_messages <<  ",E: #{attrname} is too long"
             end
             if value.codepoints.all? { |c| c <= 0x7e }
               unless tag == 22
-                attr_messages << "W: #{attrname} should be encoded as IA5String"
+                attr_messages <<  ",W: #{attrname} should be encoded as IA5String"
               end
             else
               unless tag == 12
-                attr_messages << "W: #{attrname} should be encoded as UF8String"
+                attr_messages <<  ",W: #{attrname} should be encoded as UF8String"
               end
             end
           end
@@ -267,7 +267,7 @@ module CertLint
       dup.delete('0.9.2342.19200300.100.1.25')
       dup.each do |type|
         attrname = attr_name(type)
-        messages << "W: Name has multiple #{attrname} attributes"
+        messages <<  ",W: Name has multiple #{attrname} attributes"
       end
 
       # Empty names are valid but cause an exception when converting to a string
@@ -276,7 +276,7 @@ module CertLint
         begin
           name.to_s(OpenSSL::X509::Name::RFC2253 & ~4)
         rescue OpenSSL::X509::NameError => e
-          messages << "E: Unparsable name: #{e.message}"
+          messages <<  ",E: Unparsable name: #{e.message}"
         end
       end
 

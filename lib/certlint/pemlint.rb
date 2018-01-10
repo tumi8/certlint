@@ -28,37 +28,37 @@ module CertLint
         if in_body
           if line =~ /-END #{type}-/i
             if line !~ /^-/
-              messages << 'W: PEM boundaries should not have whitespace or characters before the boundary start'
+              messages <<  ',W: PEM boundaries should not have whitespace or characters before the boundary start'
             end
             if line !~ /^-----END /i
-              messages << "W: PEM boundaries should start with five '-' characters"
+              messages <<  ",W: PEM boundaries should start with five '-' characters"
             end
             m = /(-+)(END #{type})(-+)/i.match(line)
             if m[1] != m[3]
-              messages << 'E: PEM boundary must have same number of - at start and end'
+              messages <<  ',E: PEM boundary must have same number of - at start and end'
             end
             if m[2].upcase != m[2]
-              messages << 'W: PEM boundary should be in all caps'
+              messages <<  ',W: PEM boundary should be in all caps'
             end
             if line != m[0]
-              messages << 'E: PEM boundary should be alone on line'
+              messages <<  ',E: PEM boundary should be alone on line'
             end
             break
           end
 
           # Not boundary
           if last_line
-            messages << 'W: Only the last PEM encoded line may be less than 64 characters'
+            messages <<  ',W: Only the last PEM encoded line may be less than 64 characters'
             last_line = false
           end
           if line.length > 64
-            messages << 'W: PEM encoded lines must be 64 characters or less'
+            messages <<  ',W: PEM encoded lines must be 64 characters or less'
           end
           if line.length < 64
             last_line = true
           end
           if line !~ %r{\A[A-Za-z0-9/+=]+\z}
-            messages << 'E: PEM encoded lines may only contain base64 characters'
+            messages <<  ',E: PEM encoded lines may only contain base64 characters'
           end
           b64 += line
           next
@@ -66,20 +66,20 @@ module CertLint
         if line =~ /-BEGIN #{type}-/i
           in_body = true
           if line !~ /^-/
-            messages << 'W: PEM boundaries should not have whitespace or characters before the boundary start'
+            messages <<  ',W: PEM boundaries should not have whitespace or characters before the boundary start'
           end
           if line !~ /^-----BEGIN /i
-            messages << "W: PEM boundaries should start with five '-' characters"
+            messages <<  ",W: PEM boundaries should start with five '-' characters"
           end
           m = /(-+)(BEGIN #{type})(-+)/i.match(line)
           if m[1] != m[3]
-            messages << 'E: PEM boundary must have same number of - at start and end'
+            messages <<  ',E: PEM boundary must have same number of - at start and end'
           end
           if m[2].upcase != m[2]
-            messages << 'W: PEM boundary should be in all caps'
+            messages <<  ',W: PEM boundary should be in all caps'
           end
           if line != m[0]
-            messages << 'E: PEM boundary should be alone on line'
+            messages <<  ',E: PEM boundary should be alone on line'
           end
         end
       end
@@ -87,7 +87,7 @@ module CertLint
       begin
         der = Base64.strict_decode64(b64)
       rescue ArgumentError
-        messages << 'E: Incorrect base64 encoding'
+        messages <<  ',E: Incorrect base64 encoding'
       end
       [messages, der]
     end

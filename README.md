@@ -5,12 +5,15 @@ X.509 certificate linter
 
 For now, execute by running:
 
-`ruby -I lib:ext bin/certlint` or `ruby -I lib:ext bin/cablint`
+```bash
+./starter.sh
+```
 
 ## Required gems
 
 * `public_suffix`
 * `simpleidn`
+* `pg` (UNIX systems require the libpq-dev package to be installed)
 
 If using less than Ruby 2.3, you also need the `unf` gem.
 
@@ -19,6 +22,12 @@ If using less than Ruby 2.3, you also need the `unf` gem.
 `certlint` requires that the `asn1validator` extension be available.
 
 See ext/README for instructions on building it.
+
+## Setting up the database
+
+A PostgreSQL instance running on the default port is required. To create the required table and index,
+run ./initialize_db.sh <database-name>.
+The created table is of the form (id, cert_hash, cert) where the id is a serial, the cert_hash is the identifier of the certificate (e.g. SHA-256 over the DER certificate) and cert is the DER encoded certificate stored as a bytea blob.
 
 ## Output
 

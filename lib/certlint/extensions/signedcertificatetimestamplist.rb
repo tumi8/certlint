@@ -20,7 +20,7 @@ class ASN1Ext
     def self.lint(content, cert, critical = false)
       messages = []
       if critical
-        messages << 'E: SignedCertificateTimestampList must not be critical'
+        messages <<  ',E: SignedCertificateTimestampList must not be critical'
       end
       messages
     end

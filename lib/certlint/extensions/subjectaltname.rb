@@ -25,11 +25,11 @@ class ASN1Ext
       messages += super(content, cert, critical)
       if cert.subject.to_a.empty?
         unless critical
-          messages << 'E: subjectAltName must be critical if subject is empty'
+          messages <<  ',E: subjectAltName must be critical if subject is empty'
         end
       else
         if critical
-          messages << 'W: subjectAltName should not be critical'
+          messages <<  ',W: subjectAltName should not be critical'
         end
       end
       # If we are busted, don't continue
@@ -43,7 +43,7 @@ class ASN1Ext
           messages += CertLint::GeneralNames.lint(genname)
       end
       unless at_least_one
-        messages << 'E: subjectAltName extension must include at least one name'
+        messages <<  ',E: subjectAltName extension must include at least one name'
       end
       messages
     end

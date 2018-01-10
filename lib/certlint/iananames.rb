@@ -90,35 +90,35 @@ module CertLint
 
       # We can't do much with domains that are not fqdns
       unless fqdn.include? '.'
-        messages << 'E: Unqualified domain name'
+        messages <<  ',E: Unqualified domain name'
         return messages
       end
 
       tld = fqdn.split('.').last
       tld_type = @iana_tlds[tld]
       if tld_type.nil?
-        messages << 'E: Unknown TLD'
+        messages <<  ',E: Unknown TLD'
         return messages
       elsif tld_type == :special
         if tld == 'onion'
-          messages << 'I: Tor Service Descriptor in SAN'
+          messages <<  ',I: Tor Service Descriptor in SAN'
         else
-          messages << 'W: Special name'
+          messages <<  ',W: Special name'
         end
         return messages
       elsif tld_type != :public
-        messages << 'E: Unknown type of TLD'
+        messages <<  ',E: Unknown type of TLD'
       end
 
       if ('.' + fqdn).end_with?(*@special_domains)
-        messages << 'E: FQDN under reserved or special domain'
+        messages <<  ',E: FQDN under reserved or special domain'
       end
 
       if fqdn.include? 'xn--'
         begin
-          u = SimpleIDN.to_unicode(fqdn.encode("UTF-8"))
+          u = SimpleIDN.to_unicode(fqdn)
         rescue SimpleIDN::ConversionError
-          messages << 'W: Bad IDN A-label in DNS Name'
+          messages <<  ',W: Bad IDN A-label in DNS Name'
           u = fqdn
         end
       else
@@ -133,17 +133,17 @@ module CertLint
         # Check for wildcard rule
         parts = fqdn.split('.')
         if parts.count == 2 && (parts[0].include? '*')
-          messages << 'E: Wildcard to immediate left of public suffix'
+          messages <<  ',E: Wildcard to immediate left of public suffix'
         end
       rescue PublicSuffix::DomainNotAllowed
-        messages << 'W: Domain is bare public suffix'
+        messages <<  ',W: Domain is bare public suffix'
       end
       unless d.nil?
         if !d.sld.nil? && d.sld.include?('*')
-          messages << 'E: Wildcard to immediate left of public suffix'
+          messages <<  ',E: Wildcard to immediate left of public suffix'
         end
         if !d.domain.nil? && d.domain.include?('_')
-          messages << 'W: Underscore in base domain'
+          messages <<  ',W: Underscore in base domain'
         end
       end
       messages

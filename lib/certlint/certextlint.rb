@@ -38,7 +38,7 @@ module CertLint
     end
 
     # oid as string, critical as boolean, value as der, cert as OpenSSL::X509::Certificate
-    def self.lint(oid, value, cert, critical = false)
+    def self.lint( oid, value, cert, critical = false)
       messages = []
 
       if @@extension_handlers.key? oid
@@ -47,24 +47,24 @@ module CertLint
       end
 
       if critical
-        messages << "E: Opaque or unknown extension (#{oid}) marked as critical"
+        messages <<  ",E: Opaque or unknown extension (#{oid}) marked as critical"
       end
 
       if UNSUPPORTED_EXTENSIONS.include? oid
-        messages << "W: Extension #{oid} is treated as opaque extension"
+        messages <<  ",W: Extension #{oid} is treated as opaque extension"
         return messages
       end
 
       if oid.start_with? '2.16.840.1.113730.'
-        messages << "W: Deprecated Netscape extension #{oid} treated as opaque extension"
+        messages <<  ",W: Deprecated Netscape extension #{oid} treated as opaque extension"
         return messages
       end
       if oid.start_with? '1.3.6.1.4.1.311.'
-        messages << "W: Microsoft extension #{oid} treated as opaque extension"
+        messages <<  ",W: Microsoft extension #{oid} treated as opaque extension"
         return messages
       end
 
-      messages << "W: Unknown Extension: #{oid}"
+      messages <<  ",W: Unknown Extension: #{oid}"
 
       messages
     end

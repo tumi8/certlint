@@ -29,7 +29,7 @@ class ASN1Ext
 
       if v.split(',').any? { |s| s.strip == 'Any Extended Key Usage' }
         if critical
-          messages << 'W: extendedKeyUsage should not be critical if Any Extended Key Usage is present'
+          messages <<  ',W: extendedKeyUsage should not be critical if Any Extended Key Usage is present'
         end
       end
 

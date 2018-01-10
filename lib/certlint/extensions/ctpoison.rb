@@ -19,12 +19,12 @@ class ASN1Ext
   class CTPoison < ASN1Ext
     def self.lint(content, cert, critical = false)
       messages = []
-      messages << 'I: Certificate Transparency Precertificate identified'
+      messages <<  ',I: Certificate Transparency Precertificate identified'
       unless critical
-        messages << 'E: CT Poison must be critical'
+        messages <<  ',E: CT Poison must be critical'
       end
       unless content.bytes == [5, 0]
-        messages << 'E: CT Poison must contain a single null'
+        messages <<  ',E: CT Poison must contain a single null'
       end
       messages
     end

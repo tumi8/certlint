@@ -27,10 +27,10 @@ class ASN1Ext
       keys = e.value.split(/\n/).map { |s| s.split(':').first }
       if keys.include? 'DirName'
         unless keys.include? 'serial'
-          messages << 'E: AuthorityKeyIdentifier must include serial number if issuer is present'
+          messages <<  ',E: AuthorityKeyIdentifier must include serial number if issuer is present'
         end
       elsif keys.include? 'serial'
-        messages << 'E: AuthorityKeyIdentifier must include issuer if serial number is present'
+        messages <<  ',E: AuthorityKeyIdentifier must include issuer if serial number is present'
       end
 
       messages
